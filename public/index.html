@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDN Express</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 { font-size: 24px; margin-bottom: 20px; color: #38bdf8; }
+        .upload-area {
+            border: 2px dashed #475569;
+            border-radius: 8px;
+            padding: 50px 20px;
+            cursor: pointer;
+            transition: border 0.3s;
+        }
+        .upload-area:hover { border-color: #38bdf8; }
+        input[type="file"] { display: none; }
+        .btn {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: #0369a1; }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; }
+        #result {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #0f172a;
+            border-radius: 6px;
+            display: none;
+            word-break: break-all;
+        }
+        .url-text { color: #34d399; font-weight: bold; font-family: monospace; font-size: 15px; }
+        #status { margin-top: 15px; font-size: 14px; color: #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CDN Express</h1>
+    
+    <form id="uploadForm">
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <span id="uploadLabel">Seleccionar archivo (Imagen, Video, Audio...)</span>
+            <input type="file" id="fileInput" name="file" required onchange="updateLabel()">
+        </div>
+        <button type="submit" class="btn" id="uploadBtn">Subir Archivo</button>
+    </form>
+
+    <div id="status"></div>
+    <div id="result">
+        <p style="margin:0 0 8px 0; color:#94a3b8; font-size: 13px;">Enlace generado (clic para copiar):</p>
+        <span class="url-text" id="fileUrl" onclick="copyToClipboard()" style="cursor:pointer;"></span>
+    </div>
+</div>
+
+<script>
+    function updateLabel() {
+        const input = document.getElementById('fileInput');
+        const label = document.getElementById('uploadLabel');
+        if(input.files.length > 0) {
+            label.innerText = input.files[0].name;
+        }
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) return;
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const btn = document.getElementById('uploadBtn');
+
+        statusDiv.innerText = "Subiendo archivo...";
+        statusDiv.style.color = "#e2e8f0";
+        btn.disabled = true;
+        resultDiv.style.display = "none";
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                statusDiv.innerText = "¡Completado!";
+                statusDiv.style.color = "#34d399";
+                const fileUrlSpan = document.getElementById('fileUrl');
+                fileUrlSpan.innerText = data.url;
+                resultDiv.style.display = "block";
+            } else {
+                statusDiv.innerText = "Error al procesar el archivo.";
+                statusDiv.style.color = "#f87171";
+            }
+        } catch (err) {
+            statusDiv.innerText = "Error de conexión.";
+            statusDiv.style.color = "#f87171";
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    function copyToClipboard() {
+        const text = document.getElementById('fileUrl').innerText;
+        navigator.clipboard.writeText(text);
+        alert("¡Copiado!");
+    }
+</script>
+</body>
+</html>
